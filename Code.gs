@@ -22,17 +22,20 @@ function getConfig() {
     // Trello API credentials
     TRELLO_API_KEY: props.getProperty('TRELLO_API_KEY'),
     TRELLO_TOKEN: props.getProperty('TRELLO_TOKEN'),
-    
+
     // Trello board/list configuration
     TRELLO_BOARD_ID: props.getProperty('TRELLO_BOARD_ID'),
     TRELLO_LIST_ID: props.getProperty('TRELLO_LIST_ID'),
-    
+
+    // Gemini API key for rewriting action items
+    GEMINI_API_KEY: props.getProperty('GEMINI_API_KEY'),
+
     // Name pattern to match for action items (supports regex)
-    NAME_PATTERN: props.getProperty('NAME_PATTERN') || 'Filipe',
-    
+    NAME_PATTERN: props.getProperty('NAME_PATTERN') || 'Filipe Miranda Pereira',
+
     // Email for error notifications
     NOTIFICATION_EMAIL: props.getProperty('NOTIFICATION_EMAIL') || Session.getActiveUser().getEmail(),
-    
+
     // Hours to look back for new documents (default: 2 hours for hourly trigger overlap)
     LOOKBACK_HOURS: parseInt(props.getProperty('LOOKBACK_HOURS') || '2', 10)
   };
@@ -114,9 +117,10 @@ function findGeminiNotesDocs(lookbackHours) {
   
   // Search query for Gemini Notes documents (Brazilian Portuguese)
   // Gemini Notes are Google Docs that end with " - Anotações do Gemini"
+  // DriveApp.searchFiles() uses Drive API v2 query syntax
   const queries = [
-    // Primary pattern: Documents ending with "Anotações do Gemini"
-    `mimeType='application/vnd.google-apps.document' and name contains 'Anotações do Gemini' and modifiedTime > '${cutoffStr}'`
+    // Search for "Gemini" in the title (more reliable than special characters)
+    `mimeType = 'application/vnd.google-apps.document' and title contains 'Gemini' and modifiedDate >= '${cutoffStr.split('T')[0]}'`
   ];
   
   const processedIds = getProcessedDocumentIds();
@@ -162,32 +166,9 @@ function isGeminiNotesDocument(file) {
   // Check if document name ends with " - Anotações do Gemini"
   const geminiPattern = /\s*-\s*Anotações do Gemini$/i;
 
-  const matchesPattern = geminiPattern.test(name);
-
-  if (!matchesPattern) {
-    return false;
-  }
-  
-  // Additional validation: Check if document contains typical Gemini Notes structure (Brazilian Portuguese)
-  try {
-    const doc = DocumentApp.openById(file.getId());
-    const text = doc.getBody().getText().toLowerCase();
-
-    // Gemini Notes in Brazilian Portuguese contain these standard sections
-    const geminiSections = [
-      'resumo',
-      'detalhes',
-      'próximas etapas sugeridas'
-    ];
-
-    const hasGeminiStructure = geminiSections.some(section => text.includes(section));
-    return hasGeminiStructure;
-    
-  } catch (docError) {
-    // If we can't read the doc, skip it
-    Logger.log(`Cannot read document ${file.getName()}: ${docError.message}`);
-    return false;
-  }
+  // The naming pattern alone is sufficient to identify Gemini Notes
+  // since this is a unique pattern used only by Google Meet
+  return geminiPattern.test(name);
 }
 
 // ============================================================================
@@ -195,18 +176,39 @@ function isGeminiNotesDocument(file) {
 // ============================================================================
 
 /**
+ * Gets the text content of a Google Doc using Drive export.
+ * This is more reliable than DocumentApp.openById() which can fail in some contexts.
+ *
+ * @param {string} fileId - The document ID
+ * @returns {string} The document text content
+ */
+function getDocumentText(fileId) {
+  const url = `https://docs.google.com/document/d/${fileId}/export?format=txt`;
+  const response = UrlFetchApp.fetch(url, {
+    headers: {
+      Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
+    },
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error(`Failed to export document: ${response.getContentText()}`);
+  }
+
+  return response.getContentText();
+}
+
+/**
  * Processes a single Gemini Notes document and creates Trello cards.
- * 
+ *
  * @param {GoogleAppsScript.Drive.File} file - The Gemini Notes file
  * @param {Object} config - Configuration object
  * @returns {number} Number of cards created
  */
 function processDocument(file, config) {
   Logger.log(`Processing: ${file.getName()}`);
-  
-  const doc = DocumentApp.openById(file.getId());
-  const body = doc.getBody();
-  const text = body.getText();
+
+  const text = getDocumentText(file.getId());
   
   // Extract meeting metadata
   const meetingInfo = extractMeetingInfo(file, text);
@@ -225,7 +227,7 @@ function processDocument(file, config) {
         continue;
       }
       
-      createTrelloCard(item, file, config);
+      createTrelloCard(item, config);
       cardsCreated++;
       
       // Respect Trello API rate limits (10 requests per second)
@@ -531,19 +533,92 @@ function deduplicateActionItems(items) {
 // ============================================================================
 
 /**
+ * Rewrites an action item in the imperative mood using Gemini API.
+ *
+ * @param {string} task - The original action item text
+ * @param {string} apiKey - Gemini API key
+ * @returns {string} The rewritten action item in imperative mood
+ */
+function rewriteActionItemWithGemini(task, apiKey) {
+  if (!apiKey) {
+    Logger.log('Gemini API key not configured, using original task');
+    return task;
+  }
+
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+
+  const prompt = `Reescreva o seguinte item de ação no modo imperativo em português brasileiro.
+Mantenha conciso e acionável. Retorne APENAS o texto reescrito, nada mais.
+Não adicione aspas ou qualquer outra formatação.
+
+Regras importantes:
+- Se houver outras pessoas mencionadas além de mim, mantenha a referência a elas (ex: "com o Fulano" ou "junto com Fulano")
+- Remova meu nome do início, mas mantenha o contexto de colaboração
+- Sempre responda em português brasileiro
+
+Exemplos:
+- "Filipe vai enviar o relatório" -> "Enviar o relatório"
+- "Filipe e João vão revisar o código" -> "Revisar o código com o João"
+- "Filipe, Maria e Pedro irão agendar a reunião" -> "Agendar a reunião com Maria e Pedro"
+
+Item de ação: "${task}"`;
+
+  const payload = {
+    contents: [{
+      parts: [{
+        text: prompt
+      }]
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 100
+    }
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(`${url}?key=${apiKey}`, {
+      method: 'POST',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      Logger.log(`Gemini API error: ${response.getContentText()}`);
+      return task;
+    }
+
+    const result = JSON.parse(response.getContentText());
+    const rewrittenTask = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+    if (rewrittenTask) {
+      Logger.log(`Rewritten: "${task}" -> "${rewrittenTask}"`);
+      return rewrittenTask;
+    }
+
+    return task;
+  } catch (error) {
+    Logger.log(`Error calling Gemini API: ${error.message}`);
+    return task;
+  }
+}
+
+/**
  * Creates a Trello card for an action item.
- * 
+ *
  * @param {Object} actionItem - The action item object
- * @param {GoogleAppsScript.Drive.File} file - Source document file
  * @param {Object} config - Configuration object
  */
-function createTrelloCard(actionItem, file, config) {
+function createTrelloCard(actionItem, config) {
   const url = 'https://api.trello.com/1/cards';
-  
+
+  // Rewrite the action item in imperative mood using Gemini
+  const rewrittenTask = rewriteActionItemWithGemini(actionItem.task, config.GEMINI_API_KEY);
+
   // Format card name
-  const cardName = actionItem.task.length > 100 
-    ? actionItem.task.substring(0, 97) + '...'
-    : actionItem.task;
+  const cardName = rewrittenTask.length > 100
+    ? rewrittenTask.substring(0, 97) + '...'
+    : rewrittenTask;
   
   // Format card description with meeting context
   const description = formatCardDescription(actionItem);
@@ -929,18 +1004,17 @@ function testDocumentDetection() {
     Logger.log(`\n--- ${doc.getName()} ---`);
     Logger.log(`Created: ${doc.getDateCreated()}`);
     Logger.log(`URL: ${doc.getUrl()}`);
-    
+
     try {
-      const document = DocumentApp.openById(doc.getId());
-      const text = document.getBody().getText();
+      const text = getDocumentText(doc.getId());
       const meetingInfo = extractMeetingInfo(doc, text);
       const actionItems = extractActionItems(text, config.NAME_PATTERN, meetingInfo);
-      
+
       Logger.log(`Meeting: ${meetingInfo.title}`);
       Logger.log(`Action items found: ${actionItems.length}`);
-      
+
       for (const item of actionItems) {
-        Logger.log(`  • ${item.task}`);
+        Logger.log(`  - ${item.task}`);
         if (item.dueDate) {
           Logger.log(`    Due: ${formatDate(item.dueDate)}`);
         }
@@ -991,4 +1065,36 @@ function testTrelloConnection() {
   } catch (error) {
     Logger.log(`✗ Connection error: ${error.message}`);
   }
+}
+
+/**
+ * Test function - verifies Gemini API connection and action item rewriting.
+ */
+function testGeminiConnection() {
+  const config = getConfig();
+
+  Logger.log('=== Testing Gemini API Connection ===');
+
+  if (!config.GEMINI_API_KEY) {
+    Logger.log('GEMINI_API_KEY not configured in Script Properties');
+    Logger.log('Get an API key from: https://aistudio.google.com/apikey');
+    return;
+  }
+
+  Logger.log('API key found, testing connection...');
+
+  const testTasks = [
+    'Filipe Miranda Pereira vai enviar o relatório até sexta-feira',
+    'Filipe Miranda Pereira deve agendar a reunião com o cliente',
+    'Filipe Miranda Pereira e Oberdan Santos irão revisar o código do projeto',
+    'Filipe Miranda Pereira, Maria e Pedro vão definir os responsáveis pelas tarefas'
+  ];
+
+  for (const task of testTasks) {
+    Logger.log(`\nOriginal: "${task}"`);
+    const rewritten = rewriteActionItemWithGemini(task, config.GEMINI_API_KEY);
+    Logger.log(`Rewritten: "${rewritten}"`);
+  }
+
+  Logger.log('\n=== Gemini API test complete ===');
 }

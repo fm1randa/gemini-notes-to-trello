@@ -172,9 +172,12 @@ Add these four required properties:
 
 | Property | Default | Description |
 |----------|---------|-------------|
+| `GEMINI_API_KEY` | (none) | Gemini API key to rewrite action items in imperative mood |
 | `NAME_PATTERN` | `Filipe` | Name to match for action items (supports regex) |
 | `NOTIFICATION_EMAIL` | Your email | Where to send error alerts |
 | `LOOKBACK_HOURS` | `2` | Hours to look back for new documents |
+
+To get a Gemini API key, visit [Google AI Studio](https://aistudio.google.com/apikey) and create a new API key.
 
 ### Alternative: Quick Setup via Code
 
@@ -258,7 +261,21 @@ You should see:
 - ✓ Successfully connected to board: [Your Board Name]
 - ✓ Successfully connected to list: [Your List Name]
 
-### Test 3: Test Document Detection
+### Test 3: Test Gemini API Connection
+
+```javascript
+// Run this function
+testGeminiConnection()
+```
+
+This tests the Gemini API integration for rewriting action items in imperative mood. You should see:
+
+- Original action items (e.g., "Filipe will send the report by Friday")
+- Rewritten versions in imperative mood (e.g., "Send the report by Friday")
+
+If `GEMINI_API_KEY` is not configured, the test will show instructions on how to get one.
+
+### Test 4: Test Document Detection
 
 ```javascript
 // Run this function
@@ -271,7 +288,7 @@ This searches the last 7 days for Gemini Notes and shows:
 - Action items extracted
 - Due dates detected
 
-### Test 4: Full Integration Test
+### Test 5: Full Integration Test
 
 1. Attend a Google Meet with Gemini Notes enabled
 2. Ensure someone says "[Your Name] will [do something]"
