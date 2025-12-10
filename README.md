@@ -33,23 +33,19 @@ Gemini Notes are Google Docs automatically created by Google Meet after meetings
 
 ### Document Naming Patterns
 
-Gemini Notes typically follow these naming conventions:
+Gemini Notes documents are created in Brazilian Portuguese and follow this naming convention:
 
-- `Meeting notes - [Meeting Title]`
-- `Notes from [Meeting Title]`
-- `Gemini notes - [Meeting Title]`
-- `Meeting summary - [Meeting Title]`
+- `[Meeting Title] - Anotações do Gemini`
+
+For example: "Weekly Team Sync - Anotações do Gemini" or "Product Planning Meeting - Anotações do Gemini"
 
 ### Document Structure
 
-The script also validates documents by checking for typical Gemini Notes sections:
+The script validates documents by checking for the standard Gemini Notes sections in Brazilian Portuguese:
 
-- **Action items** - Tasks assigned during the meeting
-- **Key discussion points** - Main topics covered
-- **Summary** - AI-generated meeting summary
-- **Attendees** - List of participants
-- **Decisions made** - Agreed-upon outcomes
-- **Next steps** - Follow-up actions
+- **Resumo** - AI-generated meeting summary
+- **Detalhes** - Detailed meeting discussion points
+- **Próximas etapas sugeridas** - Suggested next steps and action items
 
 ### Storage Location
 

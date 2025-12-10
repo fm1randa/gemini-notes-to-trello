@@ -112,15 +112,11 @@ function findGeminiNotesDocs(lookbackHours) {
   cutoffTime.setHours(cutoffTime.getHours() - lookbackHours);
   const cutoffStr = cutoffTime.toISOString();
   
-  // Search query for Gemini Notes documents
-  // Gemini Notes are Google Docs created after meetings with specific naming patterns
+  // Search query for Gemini Notes documents (Brazilian Portuguese)
+  // Gemini Notes are Google Docs that end with " - Anotações do Gemini"
   const queries = [
-    // Primary pattern: "Meeting notes" documents
-    `mimeType='application/vnd.google-apps.document' and name contains 'Meeting notes' and modifiedTime > '${cutoffStr}'`,
-    // Alternative pattern: Documents in Meet Recordings folder
-    `mimeType='application/vnd.google-apps.document' and name contains 'Notes from' and modifiedTime > '${cutoffStr}'`,
-    // Gemini-specific pattern (if available)
-    `mimeType='application/vnd.google-apps.document' and name contains 'Gemini notes' and modifiedTime > '${cutoffStr}'`
+    // Primary pattern: Documents ending with "Anotações do Gemini"
+    `mimeType='application/vnd.google-apps.document' and name contains 'Anotações do Gemini' and modifiedTime > '${cutoffStr}'`
   ];
   
   const processedIds = getProcessedDocumentIds();
@@ -161,37 +157,29 @@ function findGeminiNotesDocs(lookbackHours) {
  * @returns {boolean} True if this appears to be a Gemini Notes document
  */
 function isGeminiNotesDocument(file) {
-  const name = file.getName().toLowerCase();
-  
-  // Check naming patterns typical of Gemini Notes
-  const geminiPatterns = [
-    /^meeting notes\s*[-–—]\s*/i,
-    /^notes from\s+/i,
-    /gemini notes/i,
-    /meeting summary/i
-  ];
-  
-  const matchesPattern = geminiPatterns.some(pattern => pattern.test(file.getName()));
-  
+  const name = file.getName();
+
+  // Check if document name ends with " - Anotações do Gemini"
+  const geminiPattern = /\s*-\s*Anotações do Gemini$/i;
+
+  const matchesPattern = geminiPattern.test(name);
+
   if (!matchesPattern) {
     return false;
   }
   
-  // Additional validation: Check if document contains typical Gemini Notes structure
+  // Additional validation: Check if document contains typical Gemini Notes structure (Brazilian Portuguese)
   try {
     const doc = DocumentApp.openById(file.getId());
     const text = doc.getBody().getText().toLowerCase();
-    
-    // Gemini Notes typically contain these sections
+
+    // Gemini Notes in Brazilian Portuguese contain these standard sections
     const geminiSections = [
-      'action items',
-      'key discussion points',
-      'summary',
-      'attendees',
-      'decisions made',
-      'next steps'
+      'resumo',
+      'detalhes',
+      'próximas etapas sugeridas'
     ];
-    
+
     const hasGeminiStructure = geminiSections.some(section => text.includes(section));
     return hasGeminiStructure;
     
@@ -263,10 +251,10 @@ function extractMeetingInfo(file, text) {
   const name = file.getName();
   const created = file.getDateCreated();
   
-  // Try to extract meeting title from document name
+  // Try to extract meeting title from document name (Brazilian Portuguese pattern)
+  // Documents end with " - Anotações do Gemini", so remove that suffix
   let meetingTitle = name
-    .replace(/^meeting notes\s*[-–—]\s*/i, '')
-    .replace(/^notes from\s+/i, '')
+    .replace(/\s*-\s*Anotações do Gemini$/i, '')
     .replace(/\s*\(\d+.*\)$/, '') // Remove trailing date/time in parentheses
     .trim();
   
@@ -358,12 +346,12 @@ function extractActionItems(text, namePattern, meetingInfo) {
     }
   }
   
-  // Second pass: Look for items in "Action Items" section
+  // Second pass: Look for items in "Próximas etapas sugeridas" section (Brazilian Portuguese)
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].toLowerCase();
-    
-    // Check if we're entering/exiting action items section
-    if (line.includes('action item') || line.includes('next step') || line.includes('to-do')) {
+
+    // Check if we're entering/exiting action items section (Portuguese terms)
+    if (line.includes('próximas etapas sugeridas') || line.includes('próximas etapas')) {
       inActionSection = true;
       continue;
     }
