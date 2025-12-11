@@ -10,10 +10,11 @@ Este guia orienta você na configuração do Google Apps Script que cria automat
 2. [Como os Documentos de Anotações do Gemini são Identificados](#como-os-documentos-de-anotações-do-gemini-são-identificados)
 3. [Obtendo Credenciais do Trello](#obtendo-credenciais-do-trello)
 4. [Instalando o Script](#instalando-o-script)
-5. [Configurando as Propriedades do Script](#configurando-as-propriedades-do-script)
-6. [Configurando o Gatilho](#configurando-o-gatilho)
-7. [Testando a Integração](#testando-a-integração)
-8. [Solução de Problemas](#solução-de-problemas)
+5. [Instalando o Script via Clasp (Método Alternativo)](#instalando-o-script-via-clasp-método-alternativo)
+6. [Configurando as Propriedades do Script](#configurando-as-propriedades-do-script)
+7. [Configurando o Gatilho](#configurando-o-gatilho)
+8. [Testando a Integração](#testando-a-integração)
+9. [Solução de Problemas](#solução-de-problemas)
 
 ---
 
@@ -117,7 +118,9 @@ Opção B - Usando a API:
 
 ---
 
-## Instalando o Script
+## Instalando o Script (Método Manual)
+
+> **Dica**: Para uma instalação mais rápida com suporte a desenvolvimento local, controle de versão Git e sincronização automática, veja a seção [Instalando o Script via Clasp](#instalando-o-script-via-clasp-método-alternativo) abaixo.
 
 ### Passo 1: Crie um Novo Projeto no Apps Script
 
@@ -125,12 +128,31 @@ Opção B - Usando a API:
 2. Clique em **Novo projeto**
 3. Nomeie seu projeto (por exemplo, "Gemini Notes para Trello")
 
-### Passo 2: Adicione o Código do Script
+### Passo 2: Adicione os Arquivos do Script
 
-1. Exclua qualquer código existente no editor
-2. Copie todo o conteúdo de `Code.gs` deste pacote
-3. Cole-o no editor de scripts
-4. Pressione **Ctrl+S** (ou Cmd+S) para salvar
+O projeto é organizado em múltiplos arquivos para melhor manutenibilidade. Você precisará criar cada arquivo separadamente no editor do Apps Script:
+
+1. No editor, clique em **+** ao lado de "Arquivos" para adicionar novos arquivos
+2. Crie os seguintes arquivos e copie o conteúdo correspondente de cada arquivo deste repositório:
+
+   **Arquivos principais:**
+   - `main.gs` - Função principal de processamento
+   - `configuration.gs` - Gerenciamento de configuração
+   - `store.gs` - Gerenciamento de estado
+   - `notifications.gs` - Sistema de notificações
+   - `document-processing.gs` - Processamento de documentos
+   - `notes-finder.gs` - Detecção de documentos de Anotações do Gemini
+
+   **Serviços de integração (pasta `service/`):**
+   - `service/gemini-service.gs` - Integração com API Gemini
+   - `service/trello-service.gs` - Integração com API Trello
+
+   **Testes (pasta `test/`):**
+   - `test/test-detection.gs` - Teste de detecção de documentos
+   - `test/test-gemini.gs` - Teste de conexão Gemini
+   - `test/test-trello.gs` - Teste de conexão Trello
+
+3. Após adicionar todos os arquivos, pressione **Ctrl+S** (ou Cmd+S) para salvar
 
 ### Passo 3: Habilite os Serviços Necessários
 
@@ -144,6 +166,209 @@ Se você encontrar erros de permissão, vá em **Serviços** (ícone +) e adicio
 
 - Google Drive API
 - Google Docs API
+
+---
+
+## Instalando o Script via Clasp (Método Alternativo)
+
+Se você prefere desenvolver localmente e usar controle de versão, o clasp (Command Line Apps Script Projects) é a ferramenta ideal.
+
+### Passo 1: Instalar o Node.js e o Clasp
+
+1. Certifique-se de ter o Node.js instalado (versão 18 ou superior):
+   ```bash
+   node --version
+   ```
+
+2. Instale o clasp globalmente:
+   ```bash
+   npm install -g @google/clasp
+   ```
+
+3. Verifique a instalação:
+   ```bash
+   clasp --version
+   ```
+
+### Passo 2: Fazer Login no Clasp
+
+1. Faça login na sua conta Google:
+   ```bash
+   clasp login
+   ```
+
+2. Isso abrirá uma janela do navegador para autenticação
+3. Autorize o acesso do clasp ao Google Apps Script
+4. Após a autorização bem-sucedida, você verá uma mensagem de confirmação
+
+### Passo 3: Configurar o Projeto (Nova Instalação)
+
+**Opção A - Clonar este Repositório:**
+
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/fm1randa/gemini-notes-to-trello.git
+   cd gemini-notes-to-trello
+   ```
+
+2. Instale as dependências de desenvolvimento:
+   ```bash
+   npm install
+   ```
+
+3. Crie um novo projeto Apps Script:
+   ```bash
+   clasp create --type standalone --title "Gemini Notes para Trello"
+   ```
+
+4. Isso criará um arquivo `.clasp.json` localmente (já está no .gitignore)
+
+**Opção B - Conectar a um Projeto Existente:**
+
+1. Acesse https://script.google.com
+2. Encontre o ID do seu projeto na URL: `https://script.google.com/home/projects/SEU_ID_AQUI`
+3. Clone o projeto:
+   ```bash
+   clasp clone SEU_ID_AQUI
+   ```
+
+### Passo 4: Estrutura do Projeto
+
+Após a configuração, seu projeto terá esta estrutura:
+
+```
+gemini-notes-to-trello/
+├── .clasp.json              # Configuração do clasp (não versionado)
+├── .gitignore               # Ignora .clasp.json e node_modules
+├── appsscript.json          # Manifesto do Apps Script
+├── package.json             # Dependências do projeto
+├── main.gs                  # Função principal
+├── configuration.gs         # Gerenciamento de configuração
+├── store.gs                 # Gerenciamento de estado
+├── notifications.gs         # Sistema de notificações
+├── document-processing.gs   # Processamento de documentos
+├── notes-finder.gs          # Detecção de documentos
+├── service/
+│   ├── gemini-service.gs    # Integração com API Gemini
+│   └── trello-service.gs    # Integração com API Trello
+└── test/
+    ├── test-detection.gs    # Teste de detecção de documentos
+    ├── test-gemini.gs       # Teste de conexão Gemini
+    └── test-trello.gs       # Teste de conexão Trello
+```
+
+### Passo 5: Fazer Push do Código para o Apps Script
+
+1. Envie todos os arquivos locais para o Google Apps Script:
+   ```bash
+   clasp push
+   ```
+
+2. Se houver conflitos, você pode forçar o push (cuidado, isso sobrescreverá o código remoto):
+   ```bash
+   clasp push --force
+   ```
+
+3. Confirme que os arquivos foram enviados:
+   ```bash
+   clasp status
+   ```
+
+### Passo 6: Abrir o Editor Online
+
+Para verificar o código ou configurar propriedades, abra o editor web:
+
+```bash
+clasp open
+```
+
+Isso abrirá o projeto no editor do Google Apps Script no seu navegador.
+
+### Passo 7: Fazer Pull de Mudanças Remotas
+
+Se você fez alterações no editor web e quer sincronizar localmente:
+
+```bash
+clasp pull
+```
+
+### Comandos Úteis do Clasp
+
+| Comando | Descrição |
+|---------|-----------|
+| `clasp create` | Cria um novo projeto Apps Script |
+| `clasp clone <scriptId>` | Clona um projeto existente |
+| `clasp push` | Envia código local para Apps Script |
+| `clasp pull` | Baixa código do Apps Script |
+| `clasp open` | Abre o projeto no editor web |
+| `clasp deployments` | Lista todos os deployments |
+| `clasp deploy` | Cria um novo deployment |
+| `clasp logs` | Mostra logs de execução |
+| `clasp run <function>` | Executa uma função específica |
+
+### Fluxo de Trabalho Recomendado
+
+1. **Desenvolvimento Local**:
+   ```bash
+   # Edite os arquivos .gs localmente
+   # Teste suas alterações
+   clasp push
+   ```
+
+2. **Teste no Apps Script**:
+   ```bash
+   clasp open
+   # Execute as funções de teste no editor web
+   # Verifique os logs
+   ```
+
+3. **Sincronize Mudanças**:
+   ```bash
+   # Se fez alterações online
+   clasp pull
+
+   # Commit no git
+   git add .
+   git commit -m "feat: nova funcionalidade"
+   git push
+   ```
+
+### Resolução de Problemas com Clasp
+
+#### Erro: "User has not enabled the Apps Script API"
+
+1. Acesse https://script.google.com/home/usersettings
+2. Ative "Google Apps Script API"
+3. Tente fazer login novamente: `clasp login`
+
+#### Erro: "Could not read API credentials"
+
+1. Faça logout e login novamente:
+   ```bash
+   clasp logout
+   clasp login
+   ```
+
+#### Erro de Permissão ao Fazer Push
+
+1. Verifique se você tem permissão de editor no projeto
+2. Verifique o ID do projeto em `.clasp.json`
+3. Use `clasp open` para confirmar que está no projeto correto
+
+#### Arquivos .gs Não Aparecem Após Push
+
+1. Verifique se os arquivos têm a extensão `.gs`
+2. Confirme que `appsscript.json` está na raiz do projeto
+3. Use `clasp push --watch` para sincronização automática durante desenvolvimento
+
+### Vantagens de Usar Clasp
+
+- **Controle de Versão**: Use Git para rastrear todas as mudanças
+- **Editor Local**: Use seu IDE favorito (VS Code, IntelliJ, etc.)
+- **TypeScript**: Suporte a autocomplete com `@types/google-apps-script`
+- **CI/CD**: Automatize deployments com GitHub Actions ou similar
+- **Backup**: Todo o código fica versionado no Git
+- **Colaboração**: Múltiplos desenvolvedores podem trabalhar no mesmo projeto
 
 ---
 
