@@ -9,7 +9,7 @@ Este guia orienta você na configuração do Google Apps Script que cria automat
 1. [Pré-requisitos](#pré-requisitos)
 2. [Como os Documentos de Anotações do Gemini são Identificados](#como-os-documentos-de-anotações-do-gemini-são-identificados)
 3. [Obtendo Credenciais do Trello](#obtendo-credenciais-do-trello)
-4. [Instalando o Script](#instalando-o-script)
+4. [Instalando o Script](#instalando-o-script-método-manual)
 5. [Instalando o Script via Clasp (Método Alternativo)](#instalando-o-script-via-clasp-método-alternativo)
 6. [Configurando as Propriedades do Script](#configurando-as-propriedades-do-script)
 7. [Configurando o Gatilho](#configurando-o-gatilho)
