@@ -1,402 +1,402 @@
-# Gemini Notes to Trello: Setup Guide
+# Gemini Notes para Trello: Guia de Configuração
 
-This guide walks you through setting up the Google Apps Script that automatically creates Trello cards from action items in your Google Meet Gemini Notes.
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [How Gemini Notes Documents Are Identified](#how-gemini-notes-documents-are-identified)
-3. [Obtaining Trello Credentials](#obtaining-trello-credentials)
-4. [Installing the Script](#installing-the-script)
-5. [Configuring Script Properties](#configuring-script-properties)
-6. [Setting Up the Trigger](#setting-up-the-trigger)
-7. [Testing the Integration](#testing-the-integration)
-8. [Troubleshooting](#troubleshooting)
+Este guia orienta você na configuração do Google Apps Script que cria automaticamente cards no Trello a partir de itens de ação nas suas Anotações do Gemini do Google Meet.
 
 ---
 
-## Prerequisites
+## Índice
 
-Before starting, ensure you have:
-
-- A Google Workspace account with Gemini Notes enabled for Google Meet
-- A Trello account with at least one board
-- Access to Google Apps Script (script.google.com)
-
----
-
-## How Gemini Notes Documents Are Identified
-
-Gemini Notes are Google Docs automatically created by Google Meet after meetings end. The script identifies them using several criteria:
-
-### Document Naming Patterns
-
-Gemini Notes documents are created in Brazilian Portuguese and follow this naming convention:
-
-- `[Meeting Title] - Anotações do Gemini`
-
-For example: "Weekly Team Sync - Anotações do Gemini" or "Product Planning Meeting - Anotações do Gemini"
-
-### Document Structure
-
-The script validates documents by checking for the standard Gemini Notes sections in Brazilian Portuguese:
-
-- **Resumo** - AI-generated meeting summary
-- **Detalhes** - Detailed meeting discussion points
-- **Próximas etapas sugeridas** - Suggested next steps and action items
-
-### Storage Location
-
-Gemini Notes are saved to your Google Drive, typically in the root folder or a "Meet Recordings" folder. The script searches your entire Drive for matching documents.
-
-### Filtering Logic
-
-The script avoids reprocessing by:
-
-1. Tracking processed document IDs in Script Properties
-2. Only scanning documents modified within the configured lookback period (default: 2 hours)
-3. Validating document structure before processing
+1. [Pré-requisitos](#pré-requisitos)
+2. [Como os Documentos de Anotações do Gemini são Identificados](#como-os-documentos-de-anotações-do-gemini-são-identificados)
+3. [Obtendo Credenciais do Trello](#obtendo-credenciais-do-trello)
+4. [Instalando o Script](#instalando-o-script)
+5. [Configurando as Propriedades do Script](#configurando-as-propriedades-do-script)
+6. [Configurando o Gatilho](#configurando-o-gatilho)
+7. [Testando a Integração](#testando-a-integração)
+8. [Solução de Problemas](#solução-de-problemas)
 
 ---
 
-## Obtaining Trello Credentials
+## Pré-requisitos
 
-You'll need four pieces of information from Trello:
+Antes de começar, certifique-se de ter:
 
-### Step 1: Get Your API Key
+- Uma conta Google Workspace com Anotações do Gemini habilitadas para o Google Meet
+- Uma conta Trello com pelo menos um quadro
+- Acesso ao Google Apps Script (script.google.com)
 
-1. Go to https://trello.com/power-ups/admin
-2. Click **New** to create a new Power-Up (or use an existing one)
-3. Fill in the required fields (name it something like "Gemini Notes Integration")
-4. Once created, find your **API Key** on the Power-Up details page
-5. Copy and save this key securely
+---
 
-### Step 2: Generate an Auth Token
+## Como os Documentos de Anotações do Gemini são Identificados
 
-1. On the same Power-Up page, click the link to generate a **Token**
-2. Alternatively, visit this URL (replace `YOUR_API_KEY`):
+As Anotações do Gemini são Google Docs criados automaticamente pelo Google Meet após o término das reuniões. O script os identifica usando vários critérios:
+
+### Padrões de Nomenclatura de Documentos
+
+Os documentos de Anotações do Gemini são criados em português brasileiro e seguem esta convenção de nomenclatura:
+
+- `[Título da Reunião] - Anotações do Gemini`
+
+Por exemplo: "Sincronização Semanal da Equipe - Anotações do Gemini" ou "Reunião de Planejamento de Produto - Anotações do Gemini"
+
+### Estrutura do Documento
+
+O script valida os documentos verificando as seções padrão das Anotações do Gemini em português brasileiro:
+
+- **Resumo** - Resumo da reunião gerado por IA
+- **Detalhes** - Pontos detalhados da discussão da reunião
+- **Próximas etapas sugeridas** - Próximas etapas e itens de ação sugeridos
+
+### Local de Armazenamento
+
+As Anotações do Gemini são salvas no seu Google Drive, normalmente na pasta raiz ou em uma pasta "Gravações do Meet". O script pesquisa todo o seu Drive em busca de documentos correspondentes.
+
+### Lógica de Filtragem
+
+O script evita reprocessamento ao:
+
+1. Rastrear IDs de documentos processados nas Propriedades do Script
+2. Escanear apenas documentos modificados dentro do período de retrospecção configurado (padrão: 2 horas)
+3. Validar a estrutura do documento antes do processamento
+
+---
+
+## Obtendo Credenciais do Trello
+
+Você precisará de quatro informações do Trello:
+
+### Passo 1: Obtenha sua Chave de API
+
+1. Acesse https://trello.com/power-ups/admin
+2. Clique em **New** para criar um novo Power-Up (ou use um existente)
+3. Preencha os campos obrigatórios (nomeie algo como "Integração Anotações do Gemini")
+4. Uma vez criado, encontre sua **API Key** na página de detalhes do Power-Up
+5. Copie e salve esta chave com segurança
+
+### Passo 2: Gere um Token de Autenticação
+
+1. Na mesma página do Power-Up, clique no link para gerar um **Token**
+2. Alternativamente, visite esta URL (substitua `SUA_CHAVE_API`):
    ```
-   https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&key=YOUR_API_KEY
+   https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&key=SUA_CHAVE_API
    ```
-3. Click **Allow** to authorize the integration
-4. Copy the displayed token and save it securely
+3. Clique em **Allow** para autorizar a integração
+4. Copie o token exibido e salve-o com segurança
 
-### Step 3: Find Your Board ID
+### Passo 3: Encontre o ID do seu Quadro
 
-Option A - From URL:
+Opção A - A partir da URL:
 
-1. Open your target Trello board in a browser
-2. The URL looks like: `https://trello.com/b/BOARD_ID/board-name`
-3. Copy the `BOARD_ID` portion (8 characters, alphanumeric)
+1. Abra seu quadro Trello de destino em um navegador
+2. A URL se parece com: `https://trello.com/b/ID_DO_QUADRO/nome-do-quadro`
+3. Copie a parte `ID_DO_QUADRO` (8 caracteres, alfanumérico)
 
-Option B - Using API:
+Opção B - Usando a API:
 
-1. Visit: `https://api.trello.com/1/members/me/boards?key=YOUR_API_KEY&token=YOUR_TOKEN`
-2. Find your board in the JSON response
-3. Copy the `id` field
+1. Visite: `https://api.trello.com/1/members/me/boards?key=SUA_CHAVE_API&token=SEU_TOKEN`
+2. Encontre seu quadro na resposta JSON
+3. Copie o campo `id`
 
-### Step 4: Find Your List ID
+### Passo 4: Encontre o ID da sua Lista
 
-1. Visit this URL (replace placeholders):
+1. Visite esta URL (substitua os valores):
    ```
-   https://api.trello.com/1/boards/YOUR_BOARD_ID/lists?key=YOUR_API_KEY&token=YOUR_TOKEN
+   https://api.trello.com/1/boards/ID_DO_SEU_QUADRO/lists?key=SUA_CHAVE_API&token=SEU_TOKEN
    ```
-2. Find the list where you want cards created (e.g., "To Do" or "Action Items")
-3. Copy the `id` field for that list
+2. Encontre a lista onde você quer que os cards sejam criados (por exemplo, "A Fazer" ou "Itens de Ação")
+3. Copie o campo `id` dessa lista
 
-### Summary of Required Values
+### Resumo dos Valores Necessários
 
-| Property | Example Value | Where to Find |
-|----------|---------------|---------------|
-| `TRELLO_API_KEY` | `a1b2c3d4e5f6...` | Trello Power-Up admin page |
-| `TRELLO_TOKEN` | `xyz789abc123...` | Generated via authorization URL |
-| `TRELLO_BOARD_ID` | `5f4e3d2c1b0a` | From board URL or API |
-| `TRELLO_LIST_ID` | `9a8b7c6d5e4f` | From lists API endpoint |
+| Propriedade | Valor de Exemplo | Onde Encontrar |
+|-------------|------------------|----------------|
+| `TRELLO_API_KEY` | `a1b2c3d4e5f6...` | Página de administração do Power-Up do Trello |
+| `TRELLO_TOKEN` | `xyz789abc123...` | Gerado via URL de autorização |
+| `TRELLO_BOARD_ID` | `5f4e3d2c1b0a` | Da URL do quadro ou API |
+| `TRELLO_LIST_ID` | `9a8b7c6d5e4f` | Do endpoint de listas da API |
 
 ---
 
-## Installing the Script
+## Instalando o Script
 
-### Step 1: Create a New Apps Script Project
+### Passo 1: Crie um Novo Projeto no Apps Script
 
-1. Go to https://script.google.com
-2. Click **New project**
-3. Name your project (e.g., "Gemini Notes to Trello")
+1. Acesse https://script.google.com
+2. Clique em **Novo projeto**
+3. Nomeie seu projeto (por exemplo, "Gemini Notes para Trello")
 
-### Step 2: Add the Script Code
+### Passo 2: Adicione o Código do Script
 
-1. Delete any existing code in the editor
-2. Copy the entire contents of `Code.gs` from this package
-3. Paste it into the script editor
-4. Press **Ctrl+S** (or Cmd+S) to save
+1. Exclua qualquer código existente no editor
+2. Copie todo o conteúdo de `Code.gs` deste pacote
+3. Cole-o no editor de scripts
+4. Pressione **Ctrl+S** (ou Cmd+S) para salvar
 
-### Step 3: Enable Required Services
+### Passo 3: Habilite os Serviços Necessários
 
-The script uses these Google services (usually enabled by default):
+O script usa estes serviços do Google (geralmente habilitados por padrão):
 
-- **Drive API** - For searching documents
-- **Document API** - For reading document contents
-- **Mail API** - For error notifications
+- **Drive API** - Para pesquisar documentos
+- **Document API** - Para ler conteúdos de documentos
+- **Mail API** - Para notificações de erro
 
-If you encounter permission errors, go to **Services** (+ icon) and add:
+Se você encontrar erros de permissão, vá em **Serviços** (ícone +) e adicione:
 
 - Google Drive API
 - Google Docs API
 
 ---
 
-## Configuring Script Properties
+## Configurando as Propriedades do Script
 
-Script Properties store your configuration securely without exposing credentials in code.
+As Propriedades do Script armazenam sua configuração de forma segura sem expor credenciais no código.
 
-### Step 1: Open Script Properties
+### Passo 1: Abra as Propriedades do Script
 
-1. In the Apps Script editor, click **Project Settings** (gear icon)
-2. Scroll down to **Script Properties**
-3. Click **Add script property**
+1. No editor do Apps Script, clique em **Configurações do projeto** (ícone de engrenagem)
+2. Role até **Propriedades do script**
+3. Clique em **Adicionar propriedade do script**
 
-### Step 2: Add Required Properties
+### Passo 2: Adicione as Propriedades Obrigatórias
 
-Add these four required properties:
+Adicione estas quatro propriedades obrigatórias:
 
-| Property | Value |
-|----------|-------|
-| `TRELLO_API_KEY` | Your Trello API key |
-| `TRELLO_TOKEN` | Your Trello auth token |
-| `TRELLO_BOARD_ID` | Your target board ID |
-| `TRELLO_LIST_ID` | Your target list ID |
+| Propriedade | Valor |
+|-------------|-------|
+| `TRELLO_API_KEY` | Sua chave de API do Trello |
+| `TRELLO_TOKEN` | Seu token de autenticação do Trello |
+| `TRELLO_BOARD_ID` | O ID do seu quadro de destino |
+| `TRELLO_LIST_ID` | O ID da sua lista de destino |
 
-### Step 3: Add Optional Properties
+### Passo 3: Adicione Propriedades Opcionais
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `GEMINI_API_KEY` | (none) | Gemini API key to rewrite action items in imperative mood |
-| `NAME_PATTERN` | `Filipe` | Name to match for action items (supports regex) |
-| `NOTIFICATION_EMAIL` | Your email | Where to send error alerts |
-| `LOOKBACK_HOURS` | `2` | Hours to look back for new documents |
+| Propriedade | Padrão | Descrição |
+|-------------|--------|-----------|
+| `GEMINI_API_KEY` | (nenhum) | Chave de API do Gemini para reescrever itens de ação no modo imperativo |
+| `NAME_PATTERN` | `Filipe` | Nome para corresponder aos itens de ação (suporta regex) |
+| `NOTIFICATION_EMAIL` | Seu email | Para onde enviar alertas de erro |
+| `LOOKBACK_HOURS` | `2` | Horas para retroceder em busca de novos documentos |
 
-To get a Gemini API key, visit [Google AI Studio](https://aistudio.google.com/apikey) and create a new API key.
+Para obter uma chave de API do Gemini, visite o [Google AI Studio](https://aistudio.google.com/apikey) e crie uma nova chave de API.
 
-### Alternative: Quick Setup via Code
+### Alternativa: Configuração Rápida via Código
 
-You can also configure using the `quickSetupTrello()` function:
+Você também pode configurar usando a função `quickSetupTrello()`:
 
-1. Open the script editor
-2. Find the `quickSetupTrello()` function near the bottom
-3. Replace the placeholder values with your actual credentials
-4. Run the function once (Select it and click ▶️ Run)
-5. Delete your credentials from the code after running
+1. Abra o editor de scripts
+2. Encontre a função `quickSetupTrello()` próximo ao final
+3. Substitua os valores de espaço reservado por suas credenciais reais
+4. Execute a função uma vez (Selecione-a e clique em ▶️ Executar)
+5. Exclua suas credenciais do código após a execução
 
 ---
 
-## Setting Up the Trigger
+## Configurando o Gatilho
 
-The script needs a time-based trigger to run automatically.
+O script precisa de um gatilho baseado em tempo para executar automaticamente.
 
-### Option 1: Using the Built-in Function
+### Opção 1: Usando a Função Integrada
 
-1. In the script editor, select `createHourlyTrigger` from the function dropdown
-2. Click **Run** (▶️)
-3. Grant permissions when prompted
-4. The trigger is now active
+1. No editor de scripts, selecione `createHourlyTrigger` no menu suspenso de funções
+2. Clique em **Executar** (▶️)
+3. Conceda permissões quando solicitado
+4. O gatilho agora está ativo
 
-### Option 2: Manual Trigger Setup
+### Opção 2: Configuração Manual do Gatilho
 
-1. Click **Triggers** (clock icon) in the left sidebar
-2. Click **+ Add Trigger**
+1. Clique em **Gatilhos** (ícone de relógio) na barra lateral esquerda
+2. Clique em **+ Adicionar gatilho**
 3. Configure:
-   - **Function to run**: `processGeminiNotes`
-   - **Event source**: Time-driven
-   - **Type**: Hour timer
-   - **Hour interval**: Every hour
-4. Click **Save**
+   - **Função a executar**: `processGeminiNotes`
+   - **Origem do evento**: Baseado em tempo
+   - **Tipo**: Temporizador de hora
+   - **Intervalo de hora**: A cada hora
+4. Clique em **Salvar**
 
-### Recommended Trigger Settings
+### Configurações Recomendadas do Gatilho
 
-| Setting | Recommended Value | Notes |
-|---------|-------------------|-------|
-| Frequency | Every 1 hour | Balances responsiveness with quota usage |
-| Failure notification | Immediately | Get alerted if the script breaks |
+| Configuração | Valor Recomendado | Observações |
+|--------------|-------------------|-------------|
+| Frequência | A cada 1 hora | Equilibra responsividade com uso de cota |
+| Notificação de falha | Imediatamente | Seja alertado se o script quebrar |
 
-### Granting Permissions
+### Concedendo Permissões
 
-On first run, Google will ask you to authorize:
+Na primeira execução, o Google solicitará que você autorize:
 
-1. **View and manage files in Google Drive** - To search for Gemini Notes
-2. **View and manage Google Docs** - To read document contents
-3. **Send email as you** - For error notifications
-4. **Connect to external services** - For Trello API calls
+1. **Ver e gerenciar arquivos no Google Drive** - Para pesquisar Anotações do Gemini
+2. **Ver e gerenciar Google Docs** - Para ler conteúdos de documentos
+3. **Enviar e-mail como você** - Para notificações de erro
+4. **Conectar-se a serviços externos** - Para chamadas à API do Trello
 
-Click through the authorization flow. If you see "This app isn't verified":
+Clique nas etapas do fluxo de autorização. Se você ver "Este aplicativo não foi verificado":
 
-1. Click **Advanced**
-2. Click **Go to [Project Name] (unsafe)**
-3. Review and click **Allow**
+1. Clique em **Avançado**
+2. Clique em **Ir para [Nome do Projeto] (não seguro)**
+3. Revise e clique em **Permitir**
 
 ---
 
-## Testing the Integration
+## Testando a Integração
 
-Before relying on the automated trigger, test each component:
+Antes de confiar no gatilho automatizado, teste cada componente:
 
-### Test 1: Verify Configuration
+### Teste 1: Verificar Configuração
 
 ```javascript
-// Run this function in the script editor
+// Execute esta função no editor de scripts
 showCurrentConfig()
 ```
 
-Check the logs to ensure all required properties show "✓ Set".
+Verifique os logs para garantir que todas as propriedades obrigatórias mostrem "✓ Definido".
 
-### Test 2: Test Trello Connection
+### Teste 2: Testar Conexão com o Trello
 
 ```javascript
-// Run this function
+// Execute esta função
 testTrelloConnection()
 ```
 
-You should see:
-- ✓ Successfully connected to board: [Your Board Name]
-- ✓ Successfully connected to list: [Your List Name]
+Você deve ver:
+- ✓ Conectado com sucesso ao quadro: [Nome do Seu Quadro]
+- ✓ Conectado com sucesso à lista: [Nome da Sua Lista]
 
-### Test 3: Test Gemini API Connection
+### Teste 3: Testar Conexão com a API do Gemini
 
 ```javascript
-// Run this function
+// Execute esta função
 testGeminiConnection()
 ```
 
-This tests the Gemini API integration for rewriting action items in imperative mood. You should see:
+Isso testa a integração da API do Gemini para reescrever itens de ação no modo imperativo. Você deve ver:
 
-- Original action items (e.g., "Filipe will send the report by Friday")
-- Rewritten versions in imperative mood (e.g., "Send the report by Friday")
+- Itens de ação originais (por exemplo, "Filipe vai enviar o relatório até sexta-feira")
+- Versões reescritas no modo imperativo (por exemplo, "Enviar o relatório até sexta-feira")
 
-If `GEMINI_API_KEY` is not configured, the test will show instructions on how to get one.
+Se `GEMINI_API_KEY` não estiver configurado, o teste mostrará instruções sobre como obter uma.
 
-### Test 4: Test Document Detection
+### Teste 4: Testar Detecção de Documentos
 
 ```javascript
-// Run this function
+// Execute esta função
 testDocumentDetection()
 ```
 
-This searches the last 7 days for Gemini Notes and shows:
+Isso pesquisa os últimos 7 dias por Anotações do Gemini e mostra:
 
-- Documents found
-- Action items extracted
-- Due dates detected
+- Documentos encontrados
+- Itens de ação extraídos
+- Prazos detectados
 
-### Test 5: Full Integration Test
+### Teste 5: Teste de Integração Completo
 
-1. Attend a Google Meet with Gemini Notes enabled
-2. Ensure someone says "[Your Name] will [do something]"
-3. Wait for Gemini Notes to generate (usually 5-10 minutes after meeting)
-4. Run `processGeminiNotes()` manually
-5. Check your Trello board for the new card
-
----
-
-## Troubleshooting
-
-### No Documents Found
-
-**Symptoms**: Script reports 0 documents found
-
-**Solutions**:
-
-1. **Check naming patterns**: Open a Gemini Notes doc and verify the title matches expected patterns
-2. **Extend lookback**: Temporarily set `LOOKBACK_HOURS` to `168` (1 week) for testing
-3. **Check permissions**: Ensure the script can access your Drive files
-4. **Verify Gemini Notes is enabled**: Check Google Workspace admin settings
-
-### Action Items Not Detected
-
-**Symptoms**: Documents found but 0 action items extracted
-
-**Solutions**:
-
-1. **Check name spelling**: Ensure `NAME_PATTERN` matches exactly how your name appears
-2. **Review document format**: Open the Gemini Notes and check how action items are formatted
-3. **Test with variations**: Try setting `NAME_PATTERN` to just your first name
-
-### Trello API Errors
-
-**Symptoms**: "Trello API error" in logs
-
-**Solutions**:
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| 401 Unauthorized | Invalid credentials | Regenerate API key and token |
-| 404 Not Found | Wrong board/list ID | Double-check IDs using the API |
-| 429 Rate Limited | Too many requests | Script auto-retries; reduce trigger frequency if persistent |
-
-### Permission Errors
-
-**Symptoms**: "You do not have permission" errors
-
-**Solutions**:
-
-1. Re-run authorization by removing the script from Connected Apps:
-   - Go to https://myaccount.google.com/permissions
-   - Find and remove the script
-   - Run the script again to re-authorize
-
-### Duplicate Cards
-
-**Symptoms**: Same action item creates multiple cards
-
-**Solutions**:
-
-1. The script tracks processed documents - this shouldn't happen normally
-2. Run `clearProcessedHistory()` if you need to reset (will reprocess all documents)
-3. Check if the same action item appears multiple times in the source document
-
-### Email Notifications Not Working
-
-**Symptoms**: Errors occur but no email received
-
-**Solutions**:
-
-1. Verify `NOTIFICATION_EMAIL` is set correctly
-2. Check spam folder
-3. Ensure MailApp quota isn't exceeded (100 emails/day)
+1. Participe de um Google Meet com Anotações do Gemini habilitadas
+2. Certifique-se de que alguém diga "[Seu Nome] vai [fazer algo]"
+3. Aguarde a geração das Anotações do Gemini (geralmente 5-10 minutos após a reunião)
+4. Execute `processGeminiNotes()` manualmente
+5. Verifique seu quadro Trello para o novo card
 
 ---
 
-## Appendix: Action Item Detection Patterns
+## Solução de Problemas
 
-The script recognizes these formats (case-insensitive):
+### Nenhum Documento Encontrado
 
-| Pattern | Example |
-|---------|---------|
-| `[Name] will...` | "Filipe will send the report" |
-| `[Name] to...` | "Filipe to schedule the meeting" |
-| `Action: [Name] -...` | "Action: Filipe - review PR" |
-| `@[Name]:...` | "@Filipe: update documentation" |
-| `[ ] [Name]:...` | "[ ] Filipe: fix the bug" |
-| `- [Name]:...` | "- Filipe: prepare slides" |
-| `[Name] -...` | "Filipe - follow up with client" |
+**Sintomas**: O script reporta 0 documentos encontrados
 
-The script also scans "Action Items" or "Next Steps" sections for any mention of the configured name.
+**Soluções**:
+
+1. **Verifique os padrões de nomenclatura**: Abra um documento de Anotações do Gemini e verifique se o título corresponde aos padrões esperados
+2. **Estenda o período de retrospecção**: Defina temporariamente `LOOKBACK_HOURS` para `168` (1 semana) para testes
+3. **Verifique as permissões**: Certifique-se de que o script pode acessar seus arquivos do Drive
+4. **Verifique se as Anotações do Gemini estão habilitadas**: Verifique as configurações de administrador do Google Workspace
+
+### Itens de Ação Não Detectados
+
+**Sintomas**: Documentos encontrados mas 0 itens de ação extraídos
+
+**Soluções**:
+
+1. **Verifique a grafia do nome**: Certifique-se de que `NAME_PATTERN` corresponde exatamente a como seu nome aparece
+2. **Revise o formato do documento**: Abra as Anotações do Gemini e verifique como os itens de ação estão formatados
+3. **Teste com variações**: Tente definir `NAME_PATTERN` apenas para seu primeiro nome
+
+### Erros da API do Trello
+
+**Sintomas**: "Erro da API do Trello" nos logs
+
+**Soluções**:
+
+| Erro | Causa | Solução |
+|------|-------|---------|
+| 401 Unauthorized | Credenciais inválidas | Regenere a chave de API e o token |
+| 404 Not Found | ID de quadro/lista errado | Verifique novamente os IDs usando a API |
+| 429 Rate Limited | Muitas solicitações | O script tenta novamente automaticamente; reduza a frequência do gatilho se persistir |
+
+### Erros de Permissão
+
+**Sintomas**: Erros "Você não tem permissão"
+
+**Soluções**:
+
+1. Execute novamente a autorização removendo o script de Aplicativos conectados:
+   - Acesse https://myaccount.google.com/permissions
+   - Encontre e remova o script
+   - Execute o script novamente para reautorizar
+
+### Cards Duplicados
+
+**Sintomas**: O mesmo item de ação cria vários cards
+
+**Soluções**:
+
+1. O script rastreia documentos processados - isso não deve acontecer normalmente
+2. Execute `clearProcessedHistory()` se precisar redefinir (reprocessará todos os documentos)
+3. Verifique se o mesmo item de ação aparece várias vezes no documento de origem
+
+### Notificações por Email Não Funcionam
+
+**Sintomas**: Ocorrem erros mas nenhum email é recebido
+
+**Soluções**:
+
+1. Verifique se `NOTIFICATION_EMAIL` está definido corretamente
+2. Verifique a pasta de spam
+3. Certifique-se de que a cota do MailApp não foi excedida (100 emails/dia)
 
 ---
 
-## Appendix: Customization Examples
+## Apêndice: Padrões de Detecção de Itens de Ação
 
-### Match Multiple Names
+O script reconhece estes formatos (sem distinção entre maiúsculas e minúsculas):
 
-To capture action items for multiple people, use regex:
+| Padrão | Exemplo |
+|--------|---------|
+| `[Nome] will...` | "Filipe will send the report" |
+| `[Nome] to...` | "Filipe to schedule the meeting" |
+| `Action: [Nome] -...` | "Action: Filipe - review PR" |
+| `@[Nome]:...` | "@Filipe: update documentation" |
+| `[ ] [Nome]:...` | "[ ] Filipe: fix the bug" |
+| `- [Nome]:...` | "- Filipe: prepare slides" |
+| `[Nome] -...` | "Filipe - follow up with client" |
+
+O script também escaneia seções de "Action Items" ou "Next Steps" para qualquer menção do nome configurado.
+
+---
+
+## Apêndice: Exemplos de Personalização
+
+### Corresponder Vários Nomes
+
+Para capturar itens de ação para várias pessoas, use regex:
 
 ```
 NAME_PATTERN: Filipe|Phil|F\. Silva
 ```
 
-### Different Trigger Frequency
+### Frequência Diferente do Gatilho
 
-For more frequent checks (every 15 minutes):
+Para verificações mais frequentes (a cada 15 minutos):
 
 ```javascript
 function createFrequentTrigger() {
@@ -407,23 +407,23 @@ function createFrequentTrigger() {
 }
 ```
 
-### Custom Card Labels
+### Etiquetas Personalizadas de Card
 
-Modify the `createTrelloCard()` function to add labels:
+Modifique a função `createTrelloCard()` para adicionar etiquetas:
 
 ```javascript
-// Add to params object
-params.idLabels = ['LABEL_ID_HERE'];
+// Adicione ao objeto params
+params.idLabels = ['ID_DA_ETIQUETA_AQUI'];
 ```
 
 ---
 
-## Support
+## Suporte
 
-If you encounter issues not covered here:
+Se você encontrar problemas não cobertos aqui:
 
-1. Check the **Execution log** in Apps Script for detailed error messages
-2. Run `testDocumentDetection()` and `testTrelloConnection()` to isolate the problem
-3. Verify your Trello API credentials haven't expired
+1. Verifique o **Log de execução** no Apps Script para mensagens de erro detalhadas
+2. Execute `testDocumentDetection()` e `testTrelloConnection()` para isolar o problema
+3. Verifique se suas credenciais da API do Trello não expiraram
 
-The script logs extensively - most issues can be diagnosed from the execution logs.
+O script registra extensivamente - a maioria dos problemas pode ser diagnosticada a partir dos logs de execução.
