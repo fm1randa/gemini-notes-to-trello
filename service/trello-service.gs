@@ -17,10 +17,8 @@ function createTrelloCard(actionItem, config) {
   // Rewrite the action item in imperative mood using Gemini
   const rewrittenTask = rewriteActionItemWithGemini(actionItem.task, config.GEMINI_API_KEY);
 
-  // Format card name
-  const cardName = rewrittenTask.length > 100
-    ? rewrittenTask.substring(0, 97) + '...'
-    : rewrittenTask;
+  // Use the full rewritten task as card name
+  const cardName = rewrittenTask;
 
   // Format card description with meeting context
   const description = formatCardDescription(actionItem);

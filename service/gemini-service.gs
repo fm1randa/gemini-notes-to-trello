@@ -66,8 +66,9 @@ Item de acao: "${task}"`;
       )?.retryDelay;
 
       // Parse delay (format: "39s") or default to 10 seconds
+      const SAFETY_DELAY = 5; // Sometimes it will fail again with a `retryDelay` of 0s.
       const waitSeconds = retryDelay
-        ? parseInt(retryDelay.replace('s', ''))
+        ? parseInt(retryDelay.replace('s', '')) + SAFETY_DELAY
         : 10;
 
       Logger.log(`Rate limited by Gemini API, waiting ${waitSeconds} seconds...`);
