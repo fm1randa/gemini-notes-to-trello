@@ -61,15 +61,18 @@ function processDocument(file, config) {
       cardsCreated++;
 
 
-      Logger.log('Waiting 1 minute before processing next document...');
+      Logger.log('Waiting 2 minutes before processing next document...');
 
       // Respect Trello and Gemini API rate limits
-      const ONE_MINUTE_MILLIS = 1 * 60 * 1000;
-      Utilities.sleep(ONE_MINUTE_MILLIS);
+      const TWO_MINUTE_MILLIS = 2 * 60 * 1000;
+      Utilities.sleep(TWO_MINUTE_MILLIS);
 
     } catch (cardError) {
+      if (cardError.message === 'GEMINI_RATE_LIMIT_EXCEEDED') {
+        Logger.log('Gemini API rate limit exceeded after 3 retries. Stopping processing to avoid creating cards with unprocessed text.');
+        throw cardError;
+      }
       Logger.log(`Failed to create card: ${cardError.message}`);
-      // Continue with other items
     }
   }
 

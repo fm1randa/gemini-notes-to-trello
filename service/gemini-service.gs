@@ -11,6 +11,7 @@
  * @param {string} task - The original action item text
  * @param {string} apiKey - Gemini API key
  * @returns {string} The rewritten action item in imperative mood
+ * @throws {Error} When rate limited after MAX_RETRIES attempts
  */
 function rewriteActionItemWithGemini(task, apiKey) {
   if (!apiKey) {
@@ -48,46 +49,48 @@ Item de acao: "${task}"`;
     }
   };
 
+  const MAX_RETRIES = 3;
+  const SAFETY_DELAY = 5;
+
   try {
-    const response = UrlFetchApp.fetch(`${url}?key=${apiKey}`, {
-      method: 'POST',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
+    let attempt = 0;
 
-    const responseCode = response.getResponseCode();
-
-    if (responseCode === 429) {
-      // Rate limited - extract retry delay from response
-      const errorData = JSON.parse(response.getContentText());
-      const retryDelay = errorData.error?.details?.find(
-        detail => detail['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
-      )?.retryDelay;
-
-      // Parse delay (format: "39s") or default to 10 seconds
-      const SAFETY_DELAY = 5; // Sometimes it will fail again with a `retryDelay` of 0s.
-      const waitSeconds = retryDelay
-        ? parseInt(retryDelay.replace('s', '')) + SAFETY_DELAY
-        : 10;
-
-      Logger.log(`Rate limited by Gemini API, waiting ${waitSeconds} seconds...`);
-      Utilities.sleep(waitSeconds * 1000);
-
-      const retryResponse = UrlFetchApp.fetch(`${url}?key=${apiKey}`, {
+    while (attempt <= MAX_RETRIES) {
+      const response = UrlFetchApp.fetch(`${url}?key=${apiKey}`, {
         method: 'POST',
         contentType: 'application/json',
         payload: JSON.stringify(payload),
         muteHttpExceptions: true
       });
 
-      if (retryResponse.getResponseCode() !== 200) {
-        Logger.log(`Gemini API error after retry: ${retryResponse.getContentText()}`);
+      const responseCode = response.getResponseCode();
+
+      if (responseCode === 429) {
+        attempt++;
+        if (attempt > MAX_RETRIES) {
+          Logger.log(`Rate limited by Gemini API, max retries (${MAX_RETRIES}) reached`);
+          throw new Error('GEMINI_RATE_LIMIT_EXCEEDED');
+        }
+
+        const errorData = JSON.parse(response.getContentText());
+        const retryDelay = errorData.error?.details?.find(
+          detail => detail['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+        )?.retryDelay;
+
+        const waitSeconds = retryDelay
+          ? parseInt(retryDelay.replace('s', '')) + SAFETY_DELAY
+          : 10;
+
+        Logger.log(`Rate limited by Gemini API (attempt ${attempt}/${MAX_RETRIES}), waiting ${waitSeconds} seconds...`);
+        Utilities.sleep(waitSeconds * 1000);
+        continue;
+      } else if (responseCode !== 200) {
+        Logger.log(`Gemini API error: ${response.getContentText()}`);
         return task;
       }
 
-      const retryResult = JSON.parse(retryResponse.getContentText());
-      const rewrittenTask = retryResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const result = JSON.parse(response.getContentText());
+      const rewrittenTask = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
       if (rewrittenTask) {
         Logger.log(`Rewritten: "${task}" -> "${rewrittenTask}"`);
@@ -95,17 +98,6 @@ Item de acao: "${task}"`;
       }
 
       return task;
-    } else if (responseCode !== 200) {
-      Logger.log(`Gemini API error: ${response.getContentText()}`);
-      return task;
-    }
-
-    const result = JSON.parse(response.getContentText());
-    const rewrittenTask = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (rewrittenTask) {
-      Logger.log(`Rewritten: "${task}" -> "${rewrittenTask}"`);
-      return rewrittenTask;
     }
 
     return task;

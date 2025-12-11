@@ -39,6 +39,11 @@ function processGeminiNotes() {
         totalCardsCreated += cardsCreated;
         markDocumentAsProcessed(doc.getId());
       } catch (docError) {
+        if (docError.message === 'GEMINI_RATE_LIMIT_EXCEEDED') {
+          Logger.log('Stopping all processing due to Gemini API rate limit exceeded');
+          errors.push('Processing stopped: Gemini API rate limit exceeded after 3 retries');
+          break;
+        }
         const errorMsg = `Error processing document "${doc.getName()}": ${docError.message}`;
         Logger.log(errorMsg);
         errors.push(errorMsg);
