@@ -1,0 +1,26 @@
+{
+  "name": "gemini-notes-to-trello",
+  "version": "1.0.0",
+  "description": "Google App Script to sync Gemini Notes to Trello",
+  "homepage": "https://github.com/fm1randa/gemini-notes-to-trello#readme",
+  "bugs": {
+    "url": "https://github.com/fm1randa/gemini-notes-to-trello/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fm1randa/gemini-notes-to-trello.git"
+  },
+  "license": "ISC",
+  "author": "Filipe Miranda",
+  "type": "commonjs",
+  "main": "main.gs",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.8"
+  },
+  "peerDependencies": {
+    "@google/clasp": "3.1.3"
+  }
+}
