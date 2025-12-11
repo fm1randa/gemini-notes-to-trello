@@ -56,7 +56,45 @@ Item de acao: "${task}"`;
       muteHttpExceptions: true
     });
 
-    if (response.getResponseCode() !== 200) {
+    const responseCode = response.getResponseCode();
+
+    if (responseCode === 429) {
+      // Rate limited - extract retry delay from response
+      const errorData = JSON.parse(response.getContentText());
+      const retryDelay = errorData.error?.details?.find(
+        detail => detail['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+      )?.retryDelay;
+
+      // Parse delay (format: "39s") or default to 10 seconds
+      const waitSeconds = retryDelay
+        ? parseInt(retryDelay.replace('s', ''))
+        : 10;
+
+      Logger.log(`Rate limited by Gemini API, waiting ${waitSeconds} seconds...`);
+      Utilities.sleep(waitSeconds * 1000);
+
+      const retryResponse = UrlFetchApp.fetch(`${url}?key=${apiKey}`, {
+        method: 'POST',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      if (retryResponse.getResponseCode() !== 200) {
+        Logger.log(`Gemini API error after retry: ${retryResponse.getContentText()}`);
+        return task;
+      }
+
+      const retryResult = JSON.parse(retryResponse.getContentText());
+      const rewrittenTask = retryResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+      if (rewrittenTask) {
+        Logger.log(`Rewritten: "${task}" -> "${rewrittenTask}"`);
+        return rewrittenTask;
+      }
+
+      return task;
+    } else if (responseCode !== 200) {
       Logger.log(`Gemini API error: ${response.getContentText()}`);
       return task;
     }

@@ -15,10 +15,8 @@ function testDocumentDetection() {
   Logger.log(`Looking for documents in last ${config.LOOKBACK_HOURS} hours...`);
   Logger.log(`Searching for action items for: ${config.NAME_PATTERN}`);
   Logger.log('');
-
-  // Temporarily extend lookback for testing
-  const testLookback = 168; // 1 week
-  const geminiDocs = findGeminiNotesDocs(testLookback);
+  
+  const geminiDocs = findGeminiNotesDocs(config.LOOKBACK_HOURS);
 
   Logger.log(`Found ${geminiDocs.length} Gemini Notes document(s):`);
 

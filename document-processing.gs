@@ -60,6 +60,9 @@ function processDocument(file, config) {
       createTrelloCard(item, config);
       cardsCreated++;
 
+
+      Logger.log('Waiting 1 minute before processing next document...');
+
       // Respect Trello and Gemini API rate limits
       const ONE_MINUTE_MILLIS = 1 * 60 * 1000;
       Utilities.sleep(ONE_MINUTE_MILLIS);

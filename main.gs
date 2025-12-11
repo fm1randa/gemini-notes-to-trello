@@ -21,7 +21,9 @@ function processGeminiNotes() {
   }
 
   const startTime = new Date();
-  Logger.log(`Starting Gemini Notes scan at ${startTime.toISOString()}`);
+  Logger.log(`Starting Gemini Notes scan at ${startTime.toISOString()}.`);
+  Logger.log(`Looking for documents in last ${config.LOOKBACK_HOURS} hours...`);
+  Logger.log(`Searching for action items for: ${config.NAME_PATTERN}`);
 
   try {
     // Find new Gemini Notes documents
